@@ -23,10 +23,11 @@ class PublicUserApiTests(TestCase):
         """Test creating user with valid payload is successful"""
         payload = {
             'email': 'user@user.com',
+            'user_type': 'Customer',
             'password': 'user123',
             'name': 'user'
         }
-
+        print('HELLO')
         res = self.client.post(CREATE_USER_URL, payload)
 
         self.assertEqual(res.status_code, status.HTTP_201_CREATED)
@@ -38,6 +39,7 @@ class PublicUserApiTests(TestCase):
         """Test creating user that already exists fails"""
         payload = {
             'email': 'test@test.com',
+            'user_type': 'Supplier',
             'password': 'test',
         }
         create_user(**payload)
@@ -50,6 +52,7 @@ class PublicUserApiTests(TestCase):
         """Test that the password must be more than 5 chars"""
         payload = {
             'email': 'test@test.com',
+            'user_type': 'Customer',
             'password': 'pw'
         }
         res = self.client.post(CREATE_USER_URL, payload)
@@ -64,6 +67,7 @@ class PublicUserApiTests(TestCase):
         """Test that a token is created for the user"""
         payload = {
             'email': 'user@user.com',
+            'user_type': 'Supplier',
             'password': 'user123'
         }
 
@@ -75,7 +79,7 @@ class PublicUserApiTests(TestCase):
 
     def test_create_token_invalid_credentials(self):
         """Test that token is not created if invalid credentials are giver"""
-        create_user(email='user@user.com', password='user123')
+        create_user(email='user@user.com', user_type='Customer', password='user123')
         payload = {
             'email': 'user@user.com',
             'password': 'wrongPass'
@@ -115,6 +119,7 @@ class PrivateUserApiTests(TestCase):
     def setUp(self):
         self.user = create_user(
             email='test@test.com',
+            user_type='Customer',
             password='pass123',
             name='name'
         )
@@ -128,6 +133,7 @@ class PrivateUserApiTests(TestCase):
         self.assertEqual(res.status_code,status.HTTP_200_OK)
         self.assertEqual(res.data, {
             'name': self.user.name,
+            'user_type': self.user.user_type,
             'email': self.user.email
         })
 
