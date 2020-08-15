@@ -1,6 +1,7 @@
 from django.contrib.auth import get_user_model
 from django.test import TestCase
 
+from core import models
 
 class ModelTests(TestCase):
 
@@ -33,3 +34,14 @@ class ModelTests(TestCase):
         """Test creating a user with invalid type raises an error"""
         with self.assertRaises(ValueError):
             get_user_model().objects.create_user('test@test.com', 'Not_Supplier', 'test123')
+
+
+    def test_store_str(self):
+        """Test the store string representation"""
+        store = models.Store.objects.create(
+            city='Cairo',
+            name='Store#1'
+        )
+
+        self.assertEqual(str(store), 'Cairo - Store#1')
+        self.assertEqual(store.cash, 0)
