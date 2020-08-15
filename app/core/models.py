@@ -48,7 +48,7 @@ class Store(models.Model):
     """Store Model"""
     name = models.CharField(max_length=255, unique=True)
     city = models.CharField(max_length=25)
-    cash = models.DecimalField(max_digits=5, decimal_places=2, default=0)
+    cash = models.DecimalField(max_digits=8, decimal_places=2, default=0)
 
     def __str__(self):
         return f'{self.city} - {self.name}'
