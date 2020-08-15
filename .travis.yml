@@ -6,4 +6,6 @@ services:
 install:
     - pip install -r requirements.txt
 script:
+    - docker-compose run app python manage.py makemigrations core
+    - docker-compose run app python manage.py migrate core
     - docker-compose run app python manage.py test
