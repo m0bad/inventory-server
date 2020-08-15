@@ -1,8 +1,6 @@
 from django.contrib.auth.models import BaseUserManager, AbstractBaseUser, PermissionsMixin
 from django.db import models
 
-from core.enums import TypeChoice
-
 
 class UserManager(BaseUserManager):
     """Create and save a new user"""

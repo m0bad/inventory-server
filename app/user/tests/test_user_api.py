@@ -72,6 +72,7 @@ class PublicUserApiTests(TestCase):
         }
 
         create_user(**payload)
+        payload.pop('user_type')
         res = self.client.post(TOKEN_URL, payload)
 
         self.assertIn('token', res.data)

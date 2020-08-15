@@ -26,10 +26,10 @@ class UserSerializer(serializers.ModelSerializer):
 
         return user
 
+
 class AuthTokenSerializer(serializers.Serializer):
     """Serializes for the user authentication object"""
     email = serializers.CharField()
-    user_type = serializers.CharField()
     password = serializers.CharField(
         style={'input_type': 'password'},
         trim_whitespace=False
@@ -39,7 +39,6 @@ class AuthTokenSerializer(serializers.Serializer):
         """Validate and authenticate the user"""
         email = attrs.get('email')
         password = attrs.get('password')
-        print('TEST: 1')
 
         user = authenticate(request=self.context.get('request'), username=email, password=password)
 
