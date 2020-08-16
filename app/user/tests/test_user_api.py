@@ -27,7 +27,7 @@ class PublicUserApiTests(TestCase):
             'password': 'user123',
             'name': 'user'
         }
-        print('HELLO')
+
         res = self.client.post(CREATE_USER_URL, payload)
 
         self.assertEqual(res.status_code, status.HTTP_201_CREATED)
