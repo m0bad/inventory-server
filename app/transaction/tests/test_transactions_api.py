@@ -43,6 +43,21 @@ class TransactionsGeneralApiTest(TestCase):
         self.client = APIClient()
         self.client.force_authenticate(self.customer)
 
+    def test_transaction_amount_and_quantity_not_equal_to_product_price_fails(self):
+        payload = sample_transaction_payload(
+            trx_type='IN',
+            store_id=self.store.id,
+            created_by=self.admin.id,
+            party_id=self.supplier.id,
+            product_id=self.product.id,
+            amount='11000',
+            quantity=9
+        )
+
+        res = self.client.post(TRANSACTION_URL, payload)
+
+        self.assertEqual(res.status_code, status.HTTP_400_BAD_REQUEST)
+
     def test_transaction_created_by_other_than_admin_fails(self):
         res = self.client.post(TRANSACTION_URL, self.payload)
 
@@ -113,7 +128,7 @@ class TransactionsInApiTest(TestCase):
     def setUp(self):
         self.admin = sample_user(user_type='Admin', email='admin@admin.com')
         self.supplier = sample_user(user_type='Supplier', email='supplier@supplier.com')
-        self.store = Store.objects.create(name='Store#1', city='Cairo')
+        self.store = Store.objects.create(name='Store#1', city='Cairo', cash=10000)
         self.product = Product.objects.create(supplier_id=self.supplier, name='TestProduct', price='1000.00', image='')
         self.payload = sample_transaction_payload(
             trx_type='IN',
@@ -141,13 +156,44 @@ class TransactionsInApiTest(TestCase):
 
 
     def test_transaction_in_with_two_store_products_success(self):
-        self.assertEqual(True, False)
+        """Test that a supplier can make more than one transaction successfully"""
+        res1 = self.client.post(TRANSACTION_URL, self.payload)
+        res2 = self.client.post(TRANSACTION_URL, self.payload)
+        transaction = Transaction.objects.all()
+        transaction_products = TransactionProduct.objects.all()
+        store_products = StoreProduct.objects.all()
+        store_product_record = StoreProduct.objects.get(store_id=self.store.id, product_id=self.product.id)
+
+        self.assertEqual(res1.status_code, status.HTTP_201_CREATED)
+        self.assertEqual(res2.status_code, status.HTTP_201_CREATED)
+        self.assertEqual(len(transaction), 2)
+        self.assertEqual(len(transaction_products), 2)
+        self.assertEqual(len(store_products), 1)
+        self.assertEqual(store_product_record.quantity, self.payload['quantity'] * 2)
 
     def test_transaction_type_in_from_customer_fails(self):
-        self.assertEqual(True, False)
+        customer = sample_user(user_type='Customer', email='customer@customer.com')
+        self.payload['party_id'] = customer
+
+        res = self.client.post(TRANSACTION_URL, self.payload)
+
+        self.assertEqual(res.status_code, status.HTTP_400_BAD_REQUEST)
+
 
     def test_transaction_in_with_no_enough_money_in_store_fails(self):
-        self.assertEqual(True, False)
+        payload = sample_transaction_payload(
+            trx_type='IN',
+            store_id=self.store.id,
+            created_by=self.admin.id,
+            party_id=self.supplier.id,
+            product_id=self.product.id,
+            amount='11000',
+            quantity=11
+        )
+
+        res = self.client.post(TRANSACTION_URL, payload)
+
+        self.assertEqual(res.status_code, status.HTTP_400_BAD_REQUEST)
 
 
 class TransactionsOutApiTest(TestCase):
@@ -155,28 +201,101 @@ class TransactionsOutApiTest(TestCase):
 
     def setUp(self):
         self.admin = sample_user(user_type='Admin', email='admin@admin.com')
-        self.supplier = sample_user(user_type='Supplier', email='supplier@supplier.com')
         self.customer = sample_user(user_type='Customer', email='customer@customer.com')
-        self.store = Store.objects.create(name='Store#1', city='Cairo')
+        self.supplier = sample_user(user_type='Supplier', email='supplier@supplier.com')
+        self.store = Store.objects.create(name='Store', city='Cairo', cash=10000)
         self.product = Product.objects.create(supplier_id=self.supplier, name='TestProduct', price='1000.00', image='')
         self.payload = sample_transaction_payload(
             trx_type='OUT',
             store_id=self.store.id,
             created_by=self.admin.id,
-            party_id=self.supplier.id,
+            party_id=self.customer.id,
             product_id=self.product.id,
         )
         self.client = APIClient()
         self.client.force_authenticate(self.supplier)
 
-    def test_basic_transaction_OUT_success(self):
-        self.assertEqual(True, False)
+    def test_transaction_out_with_no_available_products_fails(self):
+        """Test that a customer can't make a successful OUT transaction with there is no products in the store"""
+        res = self.client.post(TRANSACTION_URL, self.payload)
+        transaction = Transaction.objects.all()
+        transaction_products = TransactionProduct.objects.all()
+        store_product = TransactionProduct.objects.all()
 
-    def test_transaction_out_with_two_store_products_success(self):
-        self.assertEqual(True, False)
+        self.assertEqual(res.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertEqual(len(transaction), 0)
+        self.assertEqual(len(transaction_products), 0)
+        self.assertEqual(len(store_product), 0)
+
+    def test_basic_transaction_out_success(self):
+        """Test that customer can make an out transaction if there is available products in the store"""
+        in_trx_payload = sample_transaction_payload(
+            trx_type='IN',
+            store_id=self.store.id,
+            created_by=self.admin.id,
+            party_id=self.supplier.id,
+            product_id=self.product.id,
+            amount='3000.00',
+            quantity=3
+        )
+        out_trx_payload = sample_transaction_payload(
+            trx_type='OUT',
+            store_id=self.store.id,
+            created_by=self.admin.id,
+            party_id=self.customer.id,
+            product_id=self.product.id,
+            amount='2000.00',
+            quantity=2
+        )
+        in_res = self.client.post(TRANSACTION_URL, in_trx_payload)
+        out_res = self.client.post(TRANSACTION_URL, out_trx_payload)
+
+        transactions_count = Transaction.objects.filter().count()
+        transaction_products_count = TransactionProduct.objects.filter().count()
+        store_products = StoreProduct.objects.get(product_id=self.product)
+
+        self.assertEqual(in_res.status_code, status.HTTP_201_CREATED)
+        self.assertEqual(out_res.status_code, status.HTTP_201_CREATED)
+        self.assertEqual(transactions_count, 2)
+        self.assertEqual(transaction_products_count, 2)
+        self.assertEqual(store_products.quantity, 1)
+
 
     def test_transaction_type_out_from_supplier_fails(self):
-        self.assertEqual(True, False)
+        self.payload['party_id'] = self.supplier
+        res = self.client.post(TRANSACTION_URL, self.payload)
+
+        self.assertEqual(res.status_code, status.HTTP_400_BAD_REQUEST)
 
     def test_transaction_out_with_no_quantity_available_in_store_fails(self):
-        self.assertEqual(True, False)
+        """Test that customer can make an out transaction if there is available products in the store"""
+        in_trx_payload = sample_transaction_payload(
+            trx_type='IN',
+            store_id=self.store.id,
+            created_by=self.admin.id,
+            party_id=self.supplier.id,
+            product_id=self.product.id,
+            amount='5000.00',
+            quantity=5
+        )
+        out_trx_payload = sample_transaction_payload(
+            trx_type='OUT',
+            store_id=self.store.id,
+            created_by=self.admin.id,
+            party_id=self.customer.id,
+            product_id=self.product.id,
+            amount='7000.00',
+            quantity=7
+        )
+        in_res = self.client.post(TRANSACTION_URL, in_trx_payload)
+        out_res = self.client.post(TRANSACTION_URL, out_trx_payload)
+
+        transactions_count = Transaction.objects.filter().count()
+        transaction_products_count = TransactionProduct.objects.filter().count()
+        store_products = StoreProduct.objects.get(product_id=self.product)
+
+        self.assertEqual(in_res.status_code, status.HTTP_201_CREATED)
+        self.assertEqual(out_res.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertEqual(transactions_count, 1)
+        self.assertEqual(transaction_products_count, 1)
+        self.assertEqual(store_products.quantity, 5)
