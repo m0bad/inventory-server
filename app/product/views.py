@@ -21,3 +21,7 @@ class ProductViewSet(viewsets.ModelViewSet):
         serializer.save(supplier_id=self.request.user)
 
 
+class MyProductViewSet(ProductViewSet):
+    def get_queryset(self):
+        """Return objects for the current authenticated user only"""
+        return self.queryset.filter(supplier_id=self.request.user.id)
