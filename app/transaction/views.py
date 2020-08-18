@@ -135,3 +135,9 @@ class TransactionViewSet(viewsets.ModelViewSet):
 
         except IntegrityError:
             print('Something Went Wrong in Transactions View atomic handler.')
+
+
+class MyTransactionViewSet(TransactionViewSet):
+    def get_queryset(self):
+        """Return objects for the current authenticated user only"""
+        return self.queryset.filter(party_id=self.request.user.id)
