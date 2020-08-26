@@ -15,6 +15,10 @@ class TransactionSerializer(serializers.ModelSerializer):
         many=False,
         read_only=True
     )
+    created_by = UserSerializer(
+        many=False,
+        read_only=True
+    )
 
     class Meta:
         model = Transaction
