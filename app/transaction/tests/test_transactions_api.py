@@ -11,13 +11,13 @@ TRANSACTION_URL = reverse('transaction:transaction-list')
 def sample_user(user_type, email='user@user.com', password='pass123'):
     return get_user_model().objects.create_user(email=email, user_type=user_type, password=password)
 
-def sample_transaction_payload(trx_type, store_id, created_by, party_id, product_id, amount= '1000.00', quantity = 1):
+def sample_transaction_payload(trx_type, store, created_by, party, product_id, amount= '1000.00', quantity = 1):
     """return a transaction object"""
     return {
         'trx_type': trx_type,
-        'store_id': store_id,
+        'store': store,
         'created_by': created_by,
-        'party_id': party_id,
+        'party': party,
         'amount': amount,
         'product_id': product_id,
         'quantity': quantity
@@ -35,9 +35,9 @@ class TransactionsGeneralApiTest(TestCase):
         self.product = Product.objects.create(supplier_id=self.supplier, name='TestProduct', price='1000.00', image='')
         self.payload = sample_transaction_payload(
             trx_type='OUT',
-            store_id=self.store.id,
+            store=self.store.id,
             created_by=self.supplier.id,
-            party_id=self.customer.id,
+            party=self.customer.id,
             product_id=self.product.id,
         )
         self.client = APIClient()
@@ -46,9 +46,9 @@ class TransactionsGeneralApiTest(TestCase):
     def test_transaction_amount_and_quantity_not_equal_to_product_price_fails(self):
         payload = sample_transaction_payload(
             trx_type='IN',
-            store_id=self.store.id,
+            store=self.store.id,
             created_by=self.admin.id,
-            party_id=self.supplier.id,
+            party=self.supplier.id,
             product_id=self.product.id,
             amount='11000',
             quantity=9
@@ -70,7 +70,7 @@ class TransactionsGeneralApiTest(TestCase):
         self.assertEqual(res.status_code, status.HTTP_400_BAD_REQUEST)
 
     def test_transaction_no_store_fails(self):
-        self.payload.pop('store_id')
+        self.payload.pop('store')
         res = self.client.post(TRANSACTION_URL, self.payload)
 
         self.assertEqual(res.status_code, status.HTTP_400_BAD_REQUEST)
@@ -81,7 +81,7 @@ class TransactionsGeneralApiTest(TestCase):
         self.assertEqual(res.status_code, status.HTTP_400_BAD_REQUEST)
 
     def test_transaction_no_party_fails(self):
-        self.payload.pop('party_id')
+        self.payload.pop('party')
         res = self.client.post(TRANSACTION_URL, self.payload)
 
         self.assertEqual(res.status_code, status.HTTP_400_BAD_REQUEST)
@@ -132,9 +132,9 @@ class TransactionsInApiTest(TestCase):
         self.product = Product.objects.create(supplier_id=self.supplier, name='TestProduct', price='1000.00', image='')
         self.payload = sample_transaction_payload(
             trx_type='IN',
-            store_id=self.store.id,
+            store=self.store.id,
             created_by=self.admin.id,
-            party_id=self.supplier.id,
+            party=self.supplier.id,
             product_id=self.product.id,
         )
         self.client = APIClient()
@@ -173,7 +173,7 @@ class TransactionsInApiTest(TestCase):
 
     def test_transaction_type_in_from_customer_fails(self):
         customer = sample_user(user_type='Customer', email='customer@customer.com')
-        self.payload['party_id'] = customer
+        self.payload['party'] = customer
 
         res = self.client.post(TRANSACTION_URL, self.payload)
 
@@ -183,9 +183,9 @@ class TransactionsInApiTest(TestCase):
     def test_transaction_in_with_no_enough_money_in_store_fails(self):
         payload = sample_transaction_payload(
             trx_type='IN',
-            store_id=self.store.id,
+            store=self.store.id,
             created_by=self.admin.id,
-            party_id=self.supplier.id,
+            party=self.supplier.id,
             product_id=self.product.id,
             amount='11000',
             quantity=11
@@ -207,9 +207,9 @@ class TransactionsOutApiTest(TestCase):
         self.product = Product.objects.create(supplier_id=self.supplier, name='TestProduct', price='1000.00', image='')
         self.payload = sample_transaction_payload(
             trx_type='OUT',
-            store_id=self.store.id,
+            store=self.store.id,
             created_by=self.admin.id,
-            party_id=self.customer.id,
+            party=self.customer.id,
             product_id=self.product.id,
         )
         self.client = APIClient()
@@ -231,18 +231,18 @@ class TransactionsOutApiTest(TestCase):
         """Test that customer can make an out transaction if there is available products in the store"""
         in_trx_payload = sample_transaction_payload(
             trx_type='IN',
-            store_id=self.store.id,
+            store=self.store.id,
             created_by=self.admin.id,
-            party_id=self.supplier.id,
+            party=self.supplier.id,
             product_id=self.product.id,
             amount='3000.00',
             quantity=3
         )
         out_trx_payload = sample_transaction_payload(
             trx_type='OUT',
-            store_id=self.store.id,
+            store=self.store.id,
             created_by=self.admin.id,
-            party_id=self.customer.id,
+            party=self.customer.id,
             product_id=self.product.id,
             amount='2000.00',
             quantity=2
@@ -262,7 +262,7 @@ class TransactionsOutApiTest(TestCase):
 
 
     def test_transaction_type_out_from_supplier_fails(self):
-        self.payload['party_id'] = self.supplier
+        self.payload['party'] = self.supplier
         res = self.client.post(TRANSACTION_URL, self.payload)
 
         self.assertEqual(res.status_code, status.HTTP_400_BAD_REQUEST)
@@ -271,18 +271,18 @@ class TransactionsOutApiTest(TestCase):
         """Test that customer can make an out transaction if there is available products in the store"""
         in_trx_payload = sample_transaction_payload(
             trx_type='IN',
-            store_id=self.store.id,
+            store=self.store.id,
             created_by=self.admin.id,
-            party_id=self.supplier.id,
+            party=self.supplier.id,
             product_id=self.product.id,
             amount='5000.00',
             quantity=5
         )
         out_trx_payload = sample_transaction_payload(
             trx_type='OUT',
-            store_id=self.store.id,
+            store=self.store.id,
             created_by=self.admin.id,
-            party_id=self.customer.id,
+            party=self.customer.id,
             product_id=self.product.id,
             amount='7000.00',
             quantity=7

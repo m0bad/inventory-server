@@ -45,8 +45,8 @@ def validate_transaction_calculations(amount, quantity, product, store, trx_type
 
 class TransactionValidationForm(forms.Form):
     created_by = forms.IntegerField(validators=[validate_created_by])
-    party_id = forms.IntegerField()
-    store_id = forms.IntegerField()
+    party = forms.IntegerField()
+    store = forms.IntegerField()
     product_id = forms.IntegerField()
     quantity = forms.IntegerField(min_value=0)
     amount = forms.DecimalField(min_value=0)
@@ -71,8 +71,8 @@ class TransactionViewSet(viewsets.ModelViewSet):
 
         # extract request body data
         created_by = User.objects.get(pk=self.request.data['created_by'])
-        party_id = User.objects.get(pk=self.request.data['party_id'])
-        store_id = Store.objects.get(pk=self.request.data['store_id'])
+        party_id = User.objects.get(pk=self.request.data['party'])
+        store_id = Store.objects.get(pk=self.request.data['store'])
         product_id = Product.objects.get(pk=self.request.data['product_id'])
         trx_type = self.request.data['trx_type']
         amount = self.request.data['amount']
@@ -89,8 +89,8 @@ class TransactionViewSet(viewsets.ModelViewSet):
             with transaction.atomic():
                 trx = Transaction(
                     created_by=created_by,
-                    party_id=party_id,
-                    store_id=store_id,
+                    party=party_id,
+                    store=store_id,
                     trx_type=trx_type,
                     amount=amount,
                 )

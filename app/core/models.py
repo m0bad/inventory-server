@@ -71,8 +71,8 @@ class Product(models.Model):
 class Transaction(models.Model):
     """Transaction Model"""
     created_by = models.ForeignKey(settings.AUTH_USER_MODEL,on_delete=models.CASCADE, related_name='admin_user')
-    party_id = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='party_user')
-    store_id = models.ForeignKey(Store, on_delete=models.CASCADE)
+    party = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='party_user')
+    store = models.ForeignKey(Store, on_delete=models.CASCADE)
     trx_type = models.CharField(max_length=10)
     amount = models.DecimalField(max_digits=8, decimal_places=2)
     created_at = models.DateTimeField(auto_now_add=True)
